@@ -1,0 +1,133 @@
+name: Yearly version bump and release
+
+on:
+  schedule:
+    # Run once a year on Jan 1 at 00:00 UTC
+    - cron: '0 0 1 1 *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: yearly-release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  bump-and-release:
+    name: Bump minor, update changelog, release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Prepare versions and commits
+        id: prep
+        shell: bash
+        run: |
+          set -euo pipefail
+          TODAY=$(date -u +%F)
+          CURRENT=$(cat VERSION 2>/dev/null || echo "0.0.0")
+          CURRENT=${CURRENT#v}
+          IFS='.' read -r MAJ MIN PAT <<<"${CURRENT:-0.0.0}"
+          [[ -z "${MAJ}" ]] && MAJ=0
+          [[ -z "${MIN}" ]] && MIN=0
+          NEW_MIN=$((MIN + 1))
+          NEW_VER="${MAJ}.${NEW_MIN}.0"
+
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [[ -n "$LAST_TAG" ]]; then
+            RANGE="${LAST_TAG}..HEAD"
+          else
+            RANGE=""
+          fi
+
+          if [[ -n "$RANGE" ]]; then
+            git log --no-merges --pretty=format:'- %s (%h)' $RANGE > commits.txt || true
+          else
+            git log --no-merges --pretty=format:'- %s (%h)' > commits.txt || true
+          fi
+
+          if [[ ! -s commits.txt ]]; then
+            echo "- No changes since last release" > commits.txt
+          fi
+
+          {
+            echo "# Changelog for v${NEW_VER}"
+            echo
+            echo "Date: ${TODAY}"
+            echo "Since: ${LAST_TAG:-initial commit}"
+            echo
+            cat commits.txt
+          } > RELEASE_BODY.md
+
+          echo "new_version=${NEW_VER}" >> "$GITHUB_OUTPUT"
+          echo "today=${TODAY}" >> "$GITHUB_OUTPUT"
+
+      - name: Update VERSION
+        run: |
+          echo "${{ steps.prep.outputs.new_version }}" > VERSION
+
+      - name: Update CHANGELOG.md
+        shell: bash
+        run: |
+          set -euo pipefail
+          DATE='${{ steps.prep.outputs.today }}'
+          VER='${{ steps.prep.outputs.new_version }}'
+          # Insert new section after Unreleased; if not found, append at end
+          awk -v ver="$VER" -v date="$DATE" '
+            BEGIN { inserted=0 }
+            {
+              print $0
+              if (!inserted && $0 ~ /^## \[Unreleased\]/) {
+                print ""
+                print "## [" ver "] - " date
+                print ""
+                print "### Changes"
+                print ""
+                while ((getline l < "commits.txt") > 0) print l
+                close("commits.txt")
+                inserted=1
+              }
+            }
+            END {
+              if (!inserted) {
+                print ""
+                print "## [" ver "] - " date
+                print ""
+                print "### Changes"
+                print ""
+                while ((getline l < "commits.txt") > 0) print l
+                close("commits.txt")
+              }
+            }
+          ' CHANGELOG.md > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
+
+      - name: Commit and push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git add VERSION CHANGELOG.md
+          if git diff --cached --quiet; then
+            echo "No changes to commit." && exit 0
+          fi
+          git commit -m "chore(release): bump version to ${{ steps.prep.outputs.new_version }} and update CHANGELOG"
+          git push origin HEAD:main
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.prep.outputs.new_version }}
+          name: v${{ steps.prep.outputs.new_version }}
+          target_commitish: ${{ github.sha }}
+          body_path: RELEASE_BODY.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

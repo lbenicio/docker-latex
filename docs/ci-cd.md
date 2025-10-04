@@ -22,3 +22,22 @@ Two GitHub Actions workflows are provided:
   - Builds via Makefile, pushes both registries (version and `latest`)
   - Adds a job summary with images, IDs, sizes, and duration
 - Concurrency: per-ref, cancel in progress
+
+## Local release script
+
+For local releases without waiting for the yearly workflow, use:
+
+```sh
+scripts/release.sh <major|minor|patch>
+```
+
+What it does:
+
+- Bumps the VERSION accordingly
+- Generates a CHANGELOG entry from commits since last release
+- Commits, tags, pushes, and creates a GitHub release
+
+Requirements:
+
+- git with push permissions
+- Either GitHub CLI (gh) authenticated or GITHUB_TOKEN exported for API fallback

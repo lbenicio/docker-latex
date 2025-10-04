@@ -1,12 +1,15 @@
 # Simple Makefile to build, clean, and publish the docker-latex image
 
 # Default target
-.DEFAULT_GOAL := all
+.DEFAULT_GOAL := build
 
 IMAGE_NAME ?= docker-latex
 # Namespaces for registries (override as needed)
 DOCKER_NAMESPACE ?= lbenicio
 GHCR_NAMESPACE ?= lbenicio
+
+# Release bump type (major|minor|patch)
+BUMP ?= patch
 
 # Read default tag from VERSION file if present, fallback to 'latest'
 VERSION_FILE := $(CURDIR)/VERSION
@@ -28,18 +31,21 @@ BUILD_ARGS ?= \
 	--build-arg GID=$(shell id -g) \
 	--build-arg VERSION=$(IMAGE_TAG)
 
-.PHONY: all build clean publish help version
+.PHONY: all build clean publish help version release
 
 all: build
 
 help:
 	@echo "Targets:"
-	@echo "  all      Default target (alias of 'build')"
+	@echo "  all      Build image (alias of 'build')"
 	@echo "  build    Build the image (IMAGE_NAME, IMAGE_TAG configurable)"
 	@echo "  clean    Remove local image"
 	@echo "  publish  Push image to registry (requires you to be logged in)"
+	@echo "  release  Create a release: runs scripts/release.sh (BUMP=major|minor|patch; default: patch)"
 	@echo "  help     Show this help"
 	@echo "  version  Print version from VERSION file"
+	@echo ""
+	@echo "Default: 'make' runs 'build'. 'make release' uses BUMP=$(BUMP) by default."
 
 build:
 	DOCKER_BUILDKIT=0 docker build -f $(DOCKERFILE) $(BUILD_ARGS) \
@@ -63,3 +69,7 @@ publish:
 
 version:
 	@echo $(DEFAULT_TAG)
+
+release:
+	@[ -x scripts/release.sh ] || { echo "scripts/release.sh not found or not executable" >&2; exit 1; }
+	scripts/release.sh $(BUMP)
