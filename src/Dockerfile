@@ -44,7 +44,8 @@ ARG UID=1000
 ARG GID=1000
 ARG USER=latex
 ARG GROUP=latex
-RUN groupadd -g "$GID" "$GROUP" \
+# Create group if absent; if GID already exists, reuse it
+RUN groupadd -g "$GID" "$GROUP" 2>/dev/null || true \
     && useradd -m -u "$UID" -g "$GID" -s /bin/bash "$USER"
 
 WORKDIR /work

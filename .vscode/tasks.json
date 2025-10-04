@@ -19,6 +19,11 @@
       "label": "docker: build (direct)",
       "type": "shell",
       "command": "docker",
+      "options": {
+        "env": {
+          "DOCKER_BUILDKIT": "0"
+        }
+      },
       "args": [
         "build",
         "-f",

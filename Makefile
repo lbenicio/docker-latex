@@ -36,7 +36,7 @@ help:
 	@echo "  version  Print version from VERSION file"
 
 build:
-	docker build -f $(DOCKERFILE) $(BUILD_ARGS) \
+	DOCKER_BUILDKIT=0 docker build -f $(DOCKERFILE) $(BUILD_ARGS) \
 		-t $(IMAGE) \
 		-t $(IMAGE_LATEST) \
 		-t $(IMAGE_GHCR) \
