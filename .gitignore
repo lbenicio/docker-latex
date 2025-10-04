@@ -1,0 +1,64 @@
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor/IDE
+.idea/
+.history/
+*.swp
+*.swo
+*~
+.#*
+# Keep VS Code configs tracked
+!.vscode/
+
+# Environments
+.env
+.env.*
+.venv/
+venv/
+
+# Build outputs
+build/
+dist/
+out/
+
+# Node (if present in subdirs)
+node_modules/
+
+# Docker
+.docker/*-context-*
+
+# LaTeX artifacts
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.xdv
+*.snm
+*.thm
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.ist
+*.idx
+*.ilg
+*.ind
+*.loe
+*.loa
+
+# minted cache
+_minted-*/

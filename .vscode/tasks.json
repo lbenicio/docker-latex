@@ -1,0 +1,67 @@
+{
+  "$schema": "vscode://schemas/tasks",
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "docker: build (Makefile)",
+      "type": "shell",
+      "command": "make",
+      "args": [
+        "build",
+        "IMAGE_NAME=${input:imageName}",
+        "IMAGE_TAG=${input:imageTag}"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: build (direct)",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "build",
+        "-f",
+        "src/Dockerfile",
+        "-t",
+        "${input:imageName}:${input:imageTag}",
+        "."
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: publish",
+      "type": "shell",
+      "command": "docker",
+      "args": ["push", "${input:imageName}:${input:imageTag}"],
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: run",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-v",
+        "${workspaceFolder}:/work",
+        "${input:imageName}:${input:imageTag}"
+      ],
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "imageName",
+      "description": "Docker image name",
+      "type": "pickString",
+      "options": ["docker-latex"],
+      "default": "docker-latex"
+    },
+    {
+      "id": "imageTag",
+      "description": "Docker image tag",
+      "type": "pickString",
+      "options": ["latest", "dev"],
+      "default": "latest"
+    }
+  ]
+}
