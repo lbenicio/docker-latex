@@ -2,6 +2,20 @@
 
 A minimal, production-ready Docker image to compile LaTeX projects locally without installing TeX Live on your machine. It wraps `latexmk` with sane defaults and supports `pdflatex`, `xelatex`, and `lualatex`, plus `biber` when `biblatex` is detected.
 
+## Documentation
+
+Comprehensive docs live in `docs/`:
+
+- Overview: `docs/index.md`
+- Quickstart: `docs/quickstart.md`
+- Usage and configuration: `docs/usage.md`, `docs/configuration.md`
+- Reference: `docs/reference.md`
+- Build & publish: `docs/build-and-publish.md`
+- CI/CD: `docs/ci-cd.md`
+- Versioning: `docs/versioning-and-tags.md`
+- Troubleshooting & FAQ: `docs/troubleshooting.md`, `docs/faq.md`
+- Examples: `docs/examples/`
+
 ## Features
 
 - Based on Debian slim packages: fast and reliable
