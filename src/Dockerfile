@@ -9,6 +9,8 @@ LABEL org.opencontainers.image.title="docker-latex"
 LABEL org.opencontainers.image.description="Small LaTeX build container with latexmk/biber"
 LABEL org.opencontainers.image.source="https://github.com/lbenicio/docker-latex"
 LABEL org.opencontainers.image.licenses="GPL-3.0-only"
+ARG VERSION=dev
+LABEL org.opencontainers.image.version="${VERSION}"
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 

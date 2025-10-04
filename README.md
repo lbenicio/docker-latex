@@ -17,11 +17,14 @@ A minimal, production-ready Docker image to compile LaTeX projects locally witho
 
 ```sh
 # from repository root
-# using Makefile
+# using Makefile (builds and tags both :latest and the specified tag)
 make build IMAGE_NAME=docker-latex IMAGE_TAG=latest
 
-# or directly with docker, referencing src/Dockerfile
-docker build -f src/Dockerfile -t docker-latex:latest .
+# or directly with docker, referencing src/Dockerfile (tags both provided and :latest)
+docker build -f src/Dockerfile \
+  -t docker-latex:$(cat VERSION) \
+  -t docker-latex:latest \
+  .
 ```
 
 1. Compile your project, mounting the current folder as `/work`:

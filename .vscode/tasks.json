@@ -23,6 +23,8 @@
         "src/Dockerfile",
         "-t",
         "${input:imageName}:${input:imageTag}",
+        "-t",
+        "${input:imageName}:latest",
         "."
       ],
       "problemMatcher": []
@@ -32,6 +34,13 @@
       "type": "shell",
       "command": "docker",
       "args": ["push", "${input:imageName}:${input:imageTag}"],
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: publish latest",
+      "type": "shell",
+      "command": "docker",
+      "args": ["push", "${input:imageName}:latest"],
       "problemMatcher": []
     },
     {
