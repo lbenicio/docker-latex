@@ -1,5 +1,8 @@
 # Simple Makefile to build, clean, and publish the docker-latex image
 
+# Default target
+.DEFAULT_GOAL := all
+
 IMAGE_NAME ?= docker-latex
 # Namespaces for registries (override as needed)
 DOCKER_NAMESPACE ?= lbenicio
@@ -25,10 +28,13 @@ BUILD_ARGS ?= \
 	--build-arg GID=$(shell id -g) \
 	--build-arg VERSION=$(IMAGE_TAG)
 
-.PHONY: build clean publish help version
+.PHONY: all build clean publish help version
+
+all: build
 
 help:
 	@echo "Targets:"
+	@echo "  all      Default target (alias of 'build')"
 	@echo "  build    Build the image (IMAGE_NAME, IMAGE_TAG configurable)"
 	@echo "  clean    Remove local image"
 	@echo "  publish  Push image to registry (requires you to be logged in)"

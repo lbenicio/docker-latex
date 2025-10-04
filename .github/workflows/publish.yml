@@ -1,0 +1,134 @@
+name: Publish docker-latex image
+
+on:
+  release:
+    types: [published]
+
+concurrency:
+  group: docker-latex-publish-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    name: Build and push images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      DOCKER_BUILDKIT: '0'         # force classic builder (no buildx)
+      IMAGE_NAME: docker-latex
+      DOCKER_NAMESPACE: ${{ github.repository_owner }}
+      GHCR_NAMESPACE: ${{ github.repository_owner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version and tags
+        id: meta
+        shell: bash
+        run: |
+          # Prefer the release tag (strip leading v), fall back to VERSION file, else latest
+          TAG_FROM_RELEASE="${{ github.event.release.tag_name }}"
+          TAG_FROM_RELEASE="${TAG_FROM_RELEASE#v}"
+          TAG_FROM_FILE=$(cat VERSION 2>/dev/null || true)
+          if [[ -n "$TAG_FROM_RELEASE" ]]; then
+            IMAGE_TAG="$TAG_FROM_RELEASE"
+          elif [[ -n "$TAG_FROM_FILE" ]]; then
+            IMAGE_TAG="$TAG_FROM_FILE"
+          else
+            IMAGE_TAG="latest"
+          fi
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "IMAGE_TAG=$IMAGE_TAG" >> "$GITHUB_ENV"
+          HUB_IMAGE="${DOCKER_NAMESPACE}/${IMAGE_NAME}"
+          GHCR_IMAGE="ghcr.io/${GHCR_NAMESPACE}/${IMAGE_NAME}"
+          echo "hub_image=$HUB_IMAGE" >> "$GITHUB_OUTPUT"
+          echo "ghcr_image=$GHCR_IMAGE" >> "$GITHUB_OUTPUT"
+          echo "HUB_IMAGE=$HUB_IMAGE" >> "$GITHUB_ENV"
+          echo "GHCR_IMAGE=$GHCR_IMAGE" >> "$GITHUB_ENV"
+          echo "start_ts=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Docker info
+        run: |
+          docker version
+          docker info
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub (optional)
+        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build images (Makefile)
+        shell: bash
+        run: |
+          make build IMAGE_NAME="$IMAGE_NAME" IMAGE_TAG="$IMAGE_TAG" \
+            DOCKER_NAMESPACE="$DOCKER_NAMESPACE" GHCR_NAMESPACE="$GHCR_NAMESPACE"
+
+      - name: Push GHCR tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker push "${GHCR_IMAGE}:${IMAGE_TAG}"
+          docker push "${GHCR_IMAGE}:latest"
+
+      - name: Push Docker Hub tags (if logged in)
+        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker push "${HUB_IMAGE}:${IMAGE_TAG}"
+          docker push "${HUB_IMAGE}:latest"
+
+      - name: Gather image info
+        id: inspect
+        shell: bash
+        run: |
+          set -e
+          HUB_ID=$(docker images -q "${HUB_IMAGE}:${IMAGE_TAG}" || true)
+          GHCR_ID=$(docker images -q "${GHCR_IMAGE}:${IMAGE_TAG}" || true)
+          HUB_SIZE=$(docker images --format '{{.Repository}}:{{.Tag}} {{.Size}}' | awk "/^${HUB_IMAGE}:${IMAGE_TAG} /{print \$2}" || true)
+          GHCR_SIZE=$(docker images --format '{{.Repository}}:{{.Tag}} {{.Size}}' | awk "/^${GHCR_IMAGE}:${IMAGE_TAG} /{print \$2}" || true)
+          END_TS=$(date +%s)
+          DURATION=$((END_TS - ${start_ts:-END_TS}))
+          echo "hub_id=$HUB_ID" >> "$GITHUB_OUTPUT"
+          echo "ghcr_id=$GHCR_ID" >> "$GITHUB_OUTPUT"
+          echo "hub_size=$HUB_SIZE" >> "$GITHUB_OUTPUT"
+          echo "ghcr_size=$GHCR_SIZE" >> "$GITHUB_OUTPUT"
+          echo "duration=$DURATION" >> "$GITHUB_OUTPUT"
+
+      - name: Publish summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Docker publish summary"
+            echo
+            echo "- Release tag: ${{ github.event.release.tag_name }}"
+            echo "- Image tag: ${{ steps.meta.outputs.image_tag }} (also tagged :latest)"
+            echo "- Hub image: ${{ steps.meta.outputs.hub_image }}"
+            echo "- GHCR image: ${{ steps.meta.outputs.ghcr_image }}"
+            echo
+            echo "### Pushed"
+            echo "- GHCR: \\`${{ steps.meta.outputs.ghcr_image }}:${{ steps.meta.outputs.image_tag }}\\` (ID: \\`${{ steps.inspect.outputs.ghcr_id }}\\`, Size: ${{ steps.inspect.outputs.ghcr_size }})"
+            echo "- GHCR: \\`${{ steps.meta.outputs.ghcr_image }}:latest\\`"
+            if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+              echo "- Docker Hub: \\`${{ steps.meta.outputs.hub_image }}:${{ steps.meta.outputs.image_tag }}\\` (ID: \\`${{ steps.inspect.outputs.hub_id }}\\`, Size: ${{ steps.inspect.outputs.hub_size }})"
+              echo "- Docker Hub: \\`${{ steps.meta.outputs.hub_image }}:latest\\`"
+            else
+              echo "- Docker Hub: skipped (no credentials provided)"
+            fi
+            if [ -n "${{ steps.inspect.outputs.duration }}" ]; then
+              echo
+              echo "Build + push time: ${{ steps.inspect.outputs.duration }}s"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
