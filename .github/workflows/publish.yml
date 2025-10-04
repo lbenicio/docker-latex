@@ -113,22 +113,34 @@ jobs:
           {
             echo "## Docker publish summary"
             echo
-            echo "- Release tag: ${{ github.event.release.tag_name }}"
-            echo "- Image tag: ${{ steps.meta.outputs.image_tag }} (also tagged :latest)"
-            echo "- Hub image: ${{ steps.meta.outputs.hub_image }}"
-            echo "- GHCR image: ${{ steps.meta.outputs.ghcr_image }}"
-            echo
-            echo "### Pushed"
-            echo "- GHCR: \\`${{ steps.meta.outputs.ghcr_image }}:${{ steps.meta.outputs.image_tag }}\\` (ID: \\`${{ steps.inspect.outputs.ghcr_id }}\\`, Size: ${{ steps.inspect.outputs.ghcr_size }})"
-            echo "- GHCR: \\`${{ steps.meta.outputs.ghcr_image }}:latest\\`"
-            if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
-              echo "- Docker Hub: \\`${{ steps.meta.outputs.hub_image }}:${{ steps.meta.outputs.image_tag }}\\` (ID: \\`${{ steps.inspect.outputs.hub_id }}\\`, Size: ${{ steps.inspect.outputs.hub_size }})"
-              echo "- Docker Hub: \\`${{ steps.meta.outputs.hub_image }}:latest\\`"
-            else
-              echo "- Docker Hub: skipped (no credentials provided)"
-            fi
+            echo "| Field        | Value |"
+            echo "|--------------|-------|"
+            echo "| Release tag  | ${{ github.event.release.tag_name }} |"
+            echo "| Image tag    | ${{ steps.meta.outputs.image_tag }} |"
+            echo "| Hub image    | ${{ steps.meta.outputs.hub_image }} |"
+            echo "| GHCR image   | ${{ steps.meta.outputs.ghcr_image }} |"
             if [ -n "${{ steps.inspect.outputs.duration }}" ]; then
-              echo
-              echo "Build + push time: ${{ steps.inspect.outputs.duration }}s"
+              echo "| Duration     | ${{ steps.inspect.outputs.duration }}s |"
             fi
+            echo
+            echo "### Pushed tags"
+            echo
+            echo "```text"
+            echo "GHCR:"
+            echo "  - ${{ steps.meta.outputs.ghcr_image }}:${{ steps.meta.outputs.image_tag }}"
+            echo "    ID:   ${{ steps.inspect.outputs.ghcr_id }}"
+            echo "    Size: ${{ steps.inspect.outputs.ghcr_size }}"
+            echo "  - ${{ steps.meta.outputs.ghcr_image }}:latest"
+            if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+              echo
+              echo "Docker Hub:"
+              echo "  - ${{ steps.meta.outputs.hub_image }}:${{ steps.meta.outputs.image_tag }}"
+              echo "    ID:   ${{ steps.inspect.outputs.hub_id }}"
+              echo "    Size: ${{ steps.inspect.outputs.hub_size }}"
+              echo "  - ${{ steps.meta.outputs.hub_image }}:latest"
+            else
+              echo
+              echo "Docker Hub: skipped (no credentials provided)"
+            fi
+            echo "```"
           } >> "$GITHUB_STEP_SUMMARY"

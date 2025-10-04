@@ -74,21 +74,31 @@ jobs:
           {
             echo "## Docker build summary"
             echo
-            echo "- Ref: ${GITHUB_REF}"
-            echo "- Commit: ${GITHUB_SHA}"
-            echo "- Version: ${{ steps.meta.outputs.version }}"
-            echo "- Image (hub): ${{ steps.meta.outputs.hub_image }}:${IMAGE_TAG}"
-            echo "- Image (ghcr): ${{ steps.meta.outputs.ghcr_image }}:${IMAGE_TAG}"
-            echo "- Also tagged: :latest for both registries"
+            echo "| Field       | Value |"
+            echo "|-------------|-------|"
+            echo "| Ref         | ${GITHUB_REF} |"
+            echo "| Commit      | ${GITHUB_SHA} |"
+            echo "| Version     | ${{ steps.meta.outputs.version }} |"
+            echo "| Hub image   | ${{ steps.meta.outputs.hub_image }}:${IMAGE_TAG} |"
+            echo "| GHCR image  | ${{ steps.meta.outputs.ghcr_image }}:${IMAGE_TAG} |"
+            echo "| Also tagged | latest (both registries) |"
             if [ -n "${{ steps.inspect.outputs.id }}" ]; then
-              echo "- Image ID: \\`${{ steps.inspect.outputs.id }}\\`"
+              echo "| Image ID    | ${{ steps.inspect.outputs.id }} |"
             fi
             if [ -n "${{ steps.inspect.outputs.size }}" ]; then
-              echo "- Size: ${{ steps.inspect.outputs.size }}"
+              echo "| Size        | ${{ steps.inspect.outputs.size }} |"
             fi
             if [ -n "${{ steps.inspect.outputs.duration }}" ]; then
-              echo "- Build time: ${{ steps.inspect.outputs.duration }}s"
+              echo "| Build time  | ${{ steps.inspect.outputs.duration }}s |"
             fi
             echo
-            echo "Build executed with classic Docker builder (DOCKER_BUILDKIT=0)."
+            echo "```text"
+            echo "Tags:"
+            echo "  - ${{ steps.meta.outputs.hub_image }}:${IMAGE_TAG}"
+            echo "  - ${{ steps.meta.outputs.hub_image }}:latest"
+            echo "  - ${{ steps.meta.outputs.ghcr_image }}:${IMAGE_TAG}"
+            echo "  - ${{ steps.meta.outputs.ghcr_image }}:latest"
+            echo
+            echo "Docker builder: classic (DOCKER_BUILDKIT=0)"
+            echo "```"
           } >> "$GITHUB_STEP_SUMMARY"
