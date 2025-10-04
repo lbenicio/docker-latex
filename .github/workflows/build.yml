@@ -1,0 +1,94 @@
+name: Build docker-latex image
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+concurrency:
+  group: docker-latex-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      # Ensure classic builder (no buildx/buildkit)
+      DOCKER_BUILDKIT: '0'
+      IMAGE_NAME: docker-latex
+      # Default namespaces to repo owner; override with repo/org variables if desired
+      DOCKER_NAMESPACE: ${{ github.repository_owner }}
+      GHCR_NAMESPACE: ${{ github.repository_owner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version and tags
+        id: meta
+        shell: bash
+        run: |
+          VERSION=$(cat VERSION 2>/dev/null || echo latest)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "IMAGE_TAG=$VERSION" >> "$GITHUB_ENV"
+          HUB_IMAGE="${DOCKER_NAMESPACE}/${IMAGE_NAME}"
+          GHCR_IMAGE="ghcr.io/${GHCR_NAMESPACE}/${IMAGE_NAME}"
+          echo "hub_image=$HUB_IMAGE" >> "$GITHUB_OUTPUT"
+          echo "ghcr_image=$GHCR_IMAGE" >> "$GITHUB_OUTPUT"
+          echo "HUB_IMAGE=$HUB_IMAGE" >> "$GITHUB_ENV"
+          echo "GHCR_IMAGE=$GHCR_IMAGE" >> "$GITHUB_ENV"
+          echo "start_ts=$(date +%s)" >> "$GITHUB_ENV"
+
+      - name: Docker info
+        run: |
+          docker version
+          docker info
+
+      - name: Build with Makefile (BuildKit disabled)
+        shell: bash
+        run: |
+          make build IMAGE_NAME="$IMAGE_NAME" IMAGE_TAG="$IMAGE_TAG" \
+            DOCKER_NAMESPACE="$DOCKER_NAMESPACE" GHCR_NAMESPACE="$GHCR_NAMESPACE"
+
+      - name: Gather image info
+        id: inspect
+        shell: bash
+        run: |
+          set -e
+          ID=$(docker images -q "${HUB_IMAGE}:${IMAGE_TAG}")
+          SIZE=$(docker images --format '{{.Repository}}:{{.Tag}} {{.Size}}' | grep "^${HUB_IMAGE}:${IMAGE_TAG} " | awk '{print $2}')
+          END_TS=$(date +%s)
+          DURATION=$((END_TS - ${start_ts:-END_TS}))
+          echo "id=$ID" >> "$GITHUB_OUTPUT"
+          echo "size=$SIZE" >> "$GITHUB_OUTPUT"
+          echo "duration=$DURATION" >> "$GITHUB_OUTPUT"
+
+      - name: Job summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Docker build summary"
+            echo
+            echo "- Ref: ${GITHUB_REF}"
+            echo "- Commit: ${GITHUB_SHA}"
+            echo "- Version: ${{ steps.meta.outputs.version }}"
+            echo "- Image (hub): ${{ steps.meta.outputs.hub_image }}:${IMAGE_TAG}"
+            echo "- Image (ghcr): ${{ steps.meta.outputs.ghcr_image }}:${IMAGE_TAG}"
+            echo "- Also tagged: :latest for both registries"
+            if [ -n "${{ steps.inspect.outputs.id }}" ]; then
+              echo "- Image ID: \\`${{ steps.inspect.outputs.id }}\\`"
+            fi
+            if [ -n "${{ steps.inspect.outputs.size }}" ]; then
+              echo "- Size: ${{ steps.inspect.outputs.size }}"
+            fi
+            if [ -n "${{ steps.inspect.outputs.duration }}" ]; then
+              echo "- Build time: ${{ steps.inspect.outputs.duration }}s"
+            fi
+            echo
+            echo "Build executed with classic Docker builder (DOCKER_BUILDKIT=0)."
+          } >> "$GITHUB_STEP_SUMMARY"
