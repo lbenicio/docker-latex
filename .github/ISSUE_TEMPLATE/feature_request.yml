@@ -1,0 +1,37 @@
+name: Feature request
+description: Suggest an idea to improve docker-latex
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement!
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Preliminary checks
+      options:
+        - label: I have searched existing issues and discussions
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem would this feature solve?
+      placeholder: Describe the problem
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe your preferred solution
+      placeholder: What would you like to see?
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternative solutions you've considered
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Links, references, or prior art
