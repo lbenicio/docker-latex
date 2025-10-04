@@ -13,6 +13,9 @@ on:
       - '**/*.md'
       - '.markdownlint.*'
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint Markdown
