@@ -9,7 +9,9 @@
       "args": [
         "build",
         "IMAGE_NAME=${input:imageName}",
-        "IMAGE_TAG=${input:imageTag}"
+        "IMAGE_TAG=${input:imageTag}",
+        "DOCKER_NAMESPACE=${input:namespace}",
+        "GHCR_NAMESPACE=${input:namespace}"
       ],
       "problemMatcher": []
     },
@@ -22,25 +24,49 @@
         "-f",
         "src/Dockerfile",
         "-t",
-        "${input:imageName}:${input:imageTag}",
+        "${input:namespace}/${input:imageName}:${input:imageTag}",
         "-t",
-        "${input:imageName}:latest",
+        "${input:namespace}/${input:imageName}:latest",
+        "-t",
+        "ghcr.io/${input:namespace}/${input:imageName}:${input:imageTag}",
+        "-t",
+        "ghcr.io/${input:namespace}/${input:imageName}:latest",
         "."
       ],
       "problemMatcher": []
     },
     {
-      "label": "docker: publish",
+      "label": "docker: publish (hub)",
       "type": "shell",
       "command": "docker",
-      "args": ["push", "${input:imageName}:${input:imageTag}"],
+      "args": [
+        "push",
+        "${input:namespace}/${input:imageName}:${input:imageTag}"
+      ],
       "problemMatcher": []
     },
     {
-      "label": "docker: publish latest",
+      "label": "docker: publish latest (hub)",
       "type": "shell",
       "command": "docker",
-      "args": ["push", "${input:imageName}:latest"],
+      "args": ["push", "${input:namespace}/${input:imageName}:latest"],
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: publish (ghcr)",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "push",
+        "ghcr.io/${input:namespace}/${input:imageName}:${input:imageTag}"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "docker: publish latest (ghcr)",
+      "type": "shell",
+      "command": "docker",
+      "args": ["push", "ghcr.io/${input:namespace}/${input:imageName}:latest"],
       "problemMatcher": []
     },
     {
@@ -52,12 +78,19 @@
         "--rm",
         "-v",
         "${workspaceFolder}:/work",
-        "${input:imageName}:${input:imageTag}"
+        "${input:namespace}/${input:imageName}:${input:imageTag}"
       ],
       "problemMatcher": []
     }
   ],
   "inputs": [
+    {
+      "id": "namespace",
+      "description": "Docker Hub / GHCR namespace (owner or org)",
+      "type": "pickString",
+      "options": ["lbenicio"],
+      "default": "lbenicio"
+    },
     {
       "id": "imageName",
       "description": "Docker image name",
