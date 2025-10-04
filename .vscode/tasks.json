@@ -70,6 +70,19 @@
       "problemMatcher": []
     },
     {
+      "label": "docker: publish (Makefile)",
+      "type": "shell",
+      "command": "make",
+      "args": [
+        "publish",
+        "IMAGE_NAME=${input:imageName}",
+        "IMAGE_TAG=${input:imageTag}",
+        "DOCKER_NAMESPACE=${input:namespace}",
+        "GHCR_NAMESPACE=${input:namespace}"
+      ],
+      "problemMatcher": []
+    },
+    {
       "label": "docker: run",
       "type": "shell",
       "command": "docker",

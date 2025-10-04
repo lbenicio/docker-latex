@@ -13,12 +13,13 @@ A minimal, production-ready Docker image to compile LaTeX projects locally witho
 ## Quick start
 
 1. Place your LaTeX project in a folder with a `main.tex` (or specify `MAIN_TEX`).
-1. Build the image:
+1. Build the image (both Docker Hub and GHCR tags are created):
 
 ```sh
 # from repository root
 # using Makefile (builds and tags both :latest and the specified tag)
-make build IMAGE_NAME=docker-latex IMAGE_TAG=latest
+make build IMAGE_NAME=docker-latex IMAGE_TAG=latest \
+  DOCKER_NAMESPACE=lbenicio GHCR_NAMESPACE=lbenicio
 
 # or directly with docker, referencing src/Dockerfile (tags both provided and :latest)
 docker build -f src/Dockerfile \
@@ -37,6 +38,24 @@ docker run --rm \
 
 The PDF will be at `build/main.pdf` by default.
 
+### Registries and namespaces
+
+The Makefile builds and publishes to both Docker Hub and GitHub Container Registry (GHCR) by default.
+
+- Configure namespaces via variables (defaults to `lbenicio`):
+
+```sh
+make build DOCKER_NAMESPACE=<dockerhub_user_or_org> GHCR_NAMESPACE=<ghcr_owner> IMAGE_TAG=$(cat VERSION)
+make publish DOCKER_NAMESPACE=<dockerhub_user_or_org> GHCR_NAMESPACE=<ghcr_owner> IMAGE_TAG=$(cat VERSION)
+```
+
+Login tips:
+
+- Docker Hub: `docker login`
+- GHCR: `echo <TOKEN> | docker login ghcr.io -u <USERNAME> --password-stdin`
+
+After login, `make publish` will push four tags: hub+ghcr for `${IMAGE_TAG}` and `latest`.
+
 ### VS Code tasks
 
 This repo includes VS Code tasks to build, publish, and run the image:
@@ -44,7 +63,11 @@ This repo includes VS Code tasks to build, publish, and run the image:
 - Run: Terminal > Run Task… > pick one of
   - docker: build (Makefile)
   - docker: build (direct)
-  - docker: publish
+  - docker: publish (Makefile)
+  - docker: publish (hub)
+  - docker: publish latest (hub)
+  - docker: publish (ghcr)
+  - docker: publish latest (ghcr)
   - docker: run
 
 You’ll be prompted for the image name/tag (defaults provided).
